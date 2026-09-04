@@ -3,6 +3,7 @@
 > Generado por inspección directa del repositorio y por ejecución real de `docker compose up --build`.
 > Cada afirmación indica el archivo (y, cuando aplica, la línea) que la respalda. No contiene conocimiento genérico sobre React, Node, Docker o FastAPI que no esté confirmado en este repositorio.
 > Fecha de generación: 2026-09-04.
+> Para convenciones de código, nombres, imports, estilos, tests, Docker y manejo de errores, ver [`conventions.md`](./conventions.md) en esta misma carpeta.
 
 ---
 
