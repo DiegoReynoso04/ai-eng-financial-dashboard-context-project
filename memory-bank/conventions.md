@@ -109,8 +109,8 @@
 
 ### 16. Backend: tests de integración reales contra `TestClient`, sin mockear la generación de datos
 - **Evidencia**: `client = TestClient(app)` a nivel de módulo; cada test hace una petición HTTP real (`client.get(...)`) y verifica el JSON de respuesta contra el comportamiento real de `generate_mock_movements`, sin mocks.
-- **Archivos**: `backend/tests/test_routes.py:9` y las 18 funciones `test_*` del archivo.
-- **Qué podría romper un agente**: mockear `generate_mock_movements` o el cliente HTTP en un test nuevo rompe el patrón de "test de integración real contra la app completa" que siguen los 18 tests existentes.
+- **Archivos**: `backend/tests/test_routes.py:9` y las 15 funciones `test_*` del archivo.
+- **Qué podría romper un agente**: mockear `generate_mock_movements` o el cliente HTTP en un test nuevo rompe el patrón de "test de integración real contra la app completa" que siguen los 15 tests existentes.
 
 ### 17. `conftest.py` inserta manualmente la raíz del proyecto en `sys.path`, en vez de instalar el paquete
 - **Evidencia**: `ROOT_DIR = Path(__file__).resolve().parents[1]; sys.path.insert(0, str(ROOT_DIR))`. No hay `pyproject.toml` ni `pip install -e .` en el repo.
