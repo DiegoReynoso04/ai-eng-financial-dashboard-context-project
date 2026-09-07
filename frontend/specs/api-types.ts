@@ -145,5 +145,5 @@ export interface TopCategoryItem {
   //   por segmento (query param business_type) y etiqueta cada resultado por su cuenta.
   // * NO hay campo de porcentaje / share. Calcularlo en cliente: total_amount / Σ(total_amount).
   //   Obtener el denominador con limit=20 (devuelve todas las categorías). Ver view-types.ts
-  //   (CategoryShare, SegmentIncomeBreakdown) y param-types.ts (TopCategoriesQueryParams.limit).
+  //   (CategoryShare, SegmentIncomeBreakdown) y param-types.ts (TopCategoriesParams.limit).
 }
