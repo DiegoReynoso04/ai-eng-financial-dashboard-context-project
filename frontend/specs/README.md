@@ -54,7 +54,7 @@ respuesta de facets / summary / alerts / top-categories son nuevos.
 **Objetivo:** que el usuario pueda restringir todo el dashboard (KPIs + gráficas) a una ventana de fechas.
 
 - **Endpoints:** `GET /api/metrics/facets` (una vez, para los límites) + `GET /api/metrics` (refetch con `start_date` / `end_date`).
-- **Params:** `MetricsQueryParams` — `start_date?`, `end_date?` (ambos ISO `YYYY-MM-DD`, ambos opcionales). `category?` / `operation_type?` existen en el endpoint pero están fuera del alcance de esta feature.
+- **Params:** `MetricsParams` (extiende `DateRangeFilter`) — `start_date?`, `end_date?` (ambos ISO `YYYY-MM-DD`, ambos opcionales). `category?` / `operation_type?` existen en el endpoint pero están fuera del alcance de esta feature.
 - **Respuestas:** `MetricsFacets` (límites) y `FinancialMovement[]` (los datos filtrados, ya ordenados por `create_date` asc).
 - **Límites:** `MetricsFacets.min_date` / `max_date`. **Dinámicos** — el backend genera fechas relativas a "hoy". Nunca hard-codearlos; leerlos siempre de facets.
 - **Componente:** `DateRangeFilter` (`components.md` → Feature 1). Dos `<input type="date">` nativos, `min`/`max` nativos desde los límites, Limpiar opcional, clamp ante inversión.
@@ -81,7 +81,7 @@ respuesta de facets / summary / alerts / top-categories son nuevos.
 acumulada, con una sensibilidad controlada por el usuario.
 
 - **Endpoint:** `GET /api/metrics/alerts`.
-- **Params:** `MetricsAlertsQueryParams` — `threshold?` (number), `group_by?` (default `'month'`), `start_date?` / `end_date?` (del filtro de fechas del dashboard — la Feature 1 acota también la Feature 2), `business_type?`.
+- **Params:** `AlertsParams` (extiende `DateRangeFilter`) — `threshold?` (number), `group_by?` (default `'month'`), `start_date?` / `end_date?` (heredados de `DateRangeFilter`; los aporta el filtro de fechas del dashboard — la Feature 1 acota también la Feature 2), `business_type?`.
 - **Respuesta:** `MetricsAlert[]` — `{ period, outcome_total, baseline_average, increase_ratio }`, ascendente por período.
 - **Semántica verificada (`backend/app/routes.py:219-240`):**
   - `baseline_average` = **media acumulada de `outcome` sobre TODOS los períodos anteriores** (media expandente). **NO** una media móvil de 3 períodos.
@@ -124,7 +124,7 @@ desglose por categoría con la cuota de cada una.
 - **Endpoints:** `GET /api/metrics/categories/top` — **dos llamadas**, una por segmento:
   `?operation_type=income&business_type=B2B&limit=20` y `…&business_type=B2C&limit=20`.
   `GET /api/metrics/facets` da `business_types` (`["B2B","B2C"]`) si hay que descubrir la lista de segmentos en vez de hard-codearla.
-- **Params:** `TopCategoriesQueryParams` — `operation_type?` (**hay que enviar `'income'`**, el default de la API es `outcome`), `limit?` (**usar `20`** para traer todas las categorías → denominador real), `business_type?` (uno por llamada), `start_date?` / `end_date?` (del filtro de fechas **propio** de la vista B2B/B2C).
+- **Params:** `TopCategoriesParams` (extiende `DateRangeFilter`) — `operation_type?` (**hay que enviar `'income'`**, el default de la API es `outcome`), `limit?` (**usar `20`** para traer todas las categorías → denominador real), `business_type?` (uno por llamada), `start_date?` / `end_date?` (heredados de `DateRangeFilter`; los aporta el filtro de fechas **propio** de la vista B2B/B2C).
 - **Respuesta:** `TopCategoryItem[]` — `{ category, operation_type, total_amount }`, ordenado por `total_amount` desc, truncado a `limit`.
 - **Ausencias verificadas:** la respuesta **no tiene campo `business_type`** ni **campo de porcentaje**. El llamador etiqueta cada resultado según qué llamada hizo; el llamador calcula los porcentajes.
 - **Modelo derivado:** `SegmentIncomeBreakdown` / `CategoryShare` / `SegmentComparison` (`view-types.ts`). `incomeTotal = Σ total_amount`; `percent = incomeTotal > 0 ? total_amount / incomeTotal * 100 : 0`.
@@ -166,7 +166,7 @@ componentes son agnósticas al montaje.
 # Decisiones de diseño tomadas aquí (no dictadas por el brief)
 
 1. **Archivos de spec extra.** El brief exige `api-types.ts`, `param-types.ts`, `components.md`, `README.md`. Se añadieron `view-types.ts` (shapes derivados, para que `api-types.ts` sea un espejo puro de la API según el requisito de "separar API/UI") y `endpoints.md` (referencia de contrato escaneable, imitando cómo el repo separa `.agents/rules/` y `memory-bank/` en archivos enfocados).
-2. **`MetricsFacetsQueryParams = Record<string, never>`** en vez de omitir un tipo — documenta "sin params" explícitamente y sigue siendo importable.
+2. **`FacetsParams = Record<string, never>`** en vez de omitir un tipo — documenta "sin params" explícitamente y sigue siendo importable.
 3. **Params opcionales-nullables modelados como `field?: T`** (sin `| null`). El llamador construye query strings; "ausente" es el único estado "sin valor".
 4. **Campos de fecha como `string`** (no un `IsoDateString` marcado) — coincide con `frontend/src/lib/financial-types.ts:6`.
 5. **Routing de la Feature 3 = toggle de vista dentro de `App.tsx`** (opción B), no `react-router`. Mínimo, respeta `.agents/rules`. **Confirmado en revisión.**

@@ -19,7 +19,7 @@ import { type BusinessType, type Category } from './api-types'
 /**
  * El valor que mantiene el control del filtro de rango de fechas.
  * Ambos límites son opcionales: un rango semiabierto (solo inicio, o solo fin) es válido y se
- * pasa tal cual a MetricsQueryParams.start_date / end_date.
+ * pasa tal cual a MetricsParams.start_date / end_date.
  * Un objeto completamente vacío === "sin filtro de fecha".
  */
 export interface DateRange {

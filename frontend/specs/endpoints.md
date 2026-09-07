@@ -21,7 +21,7 @@ Referencia rápida para el agente que implemente. Todo verificado contra el cont
 
 - **No acepta `business_type`** (verificado, `routes.py:248-254`).
 - Respuesta: `FinancialMovement[]`, ordenado por `create_date` ascendente (`routes.py:259`).
-- Tipo params: `MetricsQueryParams` (`param-types.ts`). Tipo respuesta: `FinancialMovement` (`api-types.ts`).
+- Tipo params: `MetricsParams` (`param-types.ts`, extiende `DateRangeFilter`). Tipo respuesta: `FinancialMovement` (`api-types.ts`).
 - Evidencia: `/docs → GET /api/metrics`.
 
 ---
@@ -32,7 +32,7 @@ Referencia rápida para el agente que implemente. Todo verificado contra el cont
 - Respuesta: `MetricsFacets` = `{ operation_types, business_types, categories, min_date, max_date }`.
   - `categories` es una **lista global**, no separada por `business_type` (verificado, `routes.py:150-158`).
   - `min_date` / `max_date` son **dinámicos** (el backend genera fechas relativas a "hoy"). No hard-codear.
-- Tipo params: `MetricsFacetsQueryParams = Record<string, never>`. Tipo respuesta: `MetricsFacets`.
+- Tipo params: `FacetsParams = Record<string, never>`. Tipo respuesta: `MetricsFacets`.
 - Evidencia: `/docs → GET /api/metrics/facets`.
 
 ---
@@ -50,7 +50,7 @@ Referencia rápida para el agente que implemente. Todo verificado contra el cont
 
 - Respuesta: `MetricsSummaryItem[]` = `{ period, income, outcome, net }[]`, ordenado por `period` ascendente (`routes.py:186`).
 - Para Feature 3: `?business_type=B2B` y sumar `income` de todos los items = total de ingresos B2B (equivalente a sumar `total_amount` de `categories/top` con `limit=20`).
-- Tipo params: `MetricsSummaryQueryParams`. Tipo respuesta: `MetricsSummaryItem`.
+- Tipo params: `SummaryParams` (extiende `DateRangeFilter`). Tipo respuesta: `MetricsSummaryItem`.
 - Evidencia: `/docs → GET /api/metrics/summary`.
 
 ---
@@ -74,7 +74,7 @@ Referencia rápida para el agente que implemente. Todo verificado contra el cont
 - **API vs UI para `threshold`:**
   - API: `number ≥ 0`, sin límite superior, default `0.3`.
   - UI (decisión de producto, ver `components.md`): slider `0.01`–`1.0`, paso `0.01`, default `0.3`. Esta restricción **no** existe en el backend y **no** se codifica en los tipos.
-- Tipo params: `MetricsAlertsQueryParams`. Tipo respuesta: `MetricsAlert`.
+- Tipo params: `AlertsParams` (extiende `DateRangeFilter`). Tipo respuesta: `MetricsAlert`.
 - Evidencia: `/docs → GET /api/metrics/alerts`.
 
 ---
@@ -92,7 +92,7 @@ Referencia rápida para el agente que implemente. Todo verificado contra el cont
 - Respuesta: `TopCategoryItem[]` = `{ category, operation_type, total_amount }[]`, ordenado por `total_amount` descendente, truncado a `limit` (`routes.py:200-208`).
 - **No** hay campo `business_type` ni campo de porcentaje en la respuesta (verificado). El % se calcula en el cliente: `total_amount / Σ(total_amount con limit=20)`.
 - Con `operation_type=income` solo existen 2 categorías con datos (`sales`, `others`); con `outcome`, 4. `limit=20` devuelve todas las que haya.
-- Tipo params: `TopCategoriesQueryParams`. Tipo respuesta: `TopCategoryItem` → modelo derivado `CategoryShare` / `SegmentIncomeBreakdown` (`view-types.ts`).
+- Tipo params: `TopCategoriesParams` (extiende `DateRangeFilter`). Tipo respuesta: `TopCategoryItem` → modelo derivado `CategoryShare` / `SegmentIncomeBreakdown` (`view-types.ts`).
 - Evidencia: `/docs → GET /api/metrics/categories/top`.
 
 ---

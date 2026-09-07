@@ -75,7 +75,7 @@ interface DateRangeFilterProps {
 - Un control **Limpiar** (botón de texto) aparece solo cuando `value.startDate || value.endDate`;
   llama a `onChange({})`.
 - Ambos límites opcionales: `{ startDate }` solo o `{ endDate }` solo son válidos y pasan tal cual
-  a `MetricsQueryParams`.
+  a `MetricsParams`.
 
 ### Estados / casos límite
 
@@ -94,7 +94,7 @@ montar (`useEffect(…, [])`). La Feature 1 requiere, solo en `App.tsx`:
 
 1. Estado nuevo: `dateRange: DateRange` y `bounds: DateRangeBounds | null`.
 2. Fetch `GET /api/metrics/facets` una vez al montar → setear `bounds` desde `min_date` / `max_date`.
-3. Dar a `fetchFinancialData` un argumento `params: MetricsQueryParams`; serializar `start_date` /
+3. Dar a `fetchFinancialData` un argumento `params: MetricsParams`; serializar `start_date` /
    `end_date` en el query string (saltar `undefined`).
 4. Añadir `dateRange` a las deps del `useEffect` de datos → refetch de `/api/metrics` al cambiar →
    recalcular `computeKPIs` / `computeMonthlyData` como hoy.
@@ -232,6 +232,11 @@ interface SegmentPanelProps {
 - Lista de categorías (ya ordenada por `total_amount` desc): cada fila → etiqueta de categoría ·
   `formatCurrency(total_amount)` · `formatPercent(percent)` (`percent` ya es 0–100) · barra opcional
   con `width: {percent}%` usando un token existente.
+
+**Sin resultados de top categorías** (`breakdown.categories.length === 0`): este mismo spec aplica
+a **cada** panel por separado (B2B y B2C). El panel renderiza el número principal
+`formatCurrency(breakdown.incomeTotal)` (será `$0` si `incomeTotal === 0`) y, donde iría la lista,
+el texto atenuado y centrado "Sin ingresos registrados para {segmento}". No se renderiza tabla ni barras.
 
 ### Componente: `SegmentComparisonSummary` (decisión de diseño — revisable)
 
