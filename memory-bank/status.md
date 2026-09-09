@@ -22,6 +22,26 @@
 
 ---
 
+## ✅ Skill interna del proyecto — `metrics-api-contract` (creada y validada, 2026-09-09)
+
+- **Ubicación:** `.skills/metrics-api-contract/SKILL.md`.
+- **Problema que la motivó:** el contrato real de la API de métricas (9 endpoints `GET`, `backend/app/routes.py`) y sus reglas de frontera con el frontend estaban repartidos entre `backend/app/routes.py`, `backend/tests/test_routes.py` y los 6 archivos de `frontend/specs/`. Un agente que implemente el consumo de datos tenía que re-derivarlo cada vez, con riesgo de errores silenciosos en un dashboard financiero. Las 3 skills externas ya aplicadas (`accessibility`, `vercel-react-best-practices`, `deployment-pipeline-design`) no cubren contrato de dominio.
+- **Qué captura:** digest operativo de los 9 endpoints (método/ruta, params obligatorios/opcionales, defaults, restricciones, forma de respuesta, gotchas), reglas de fechas dinámicas, reconciliación de tipos `frontend/specs/` ↔ `frontend/src/lib/financial-types.ts` ↔ backend, y las restricciones "no tocar backend / no tocar ni importar `frontend/specs/`". Fuente de verdad del comportamiento: `backend/app/routes.py`; ante discrepancia doc-vs-código, gana el código.
+- **Carga y validación:** cargada con `npx skills use "./.skills/metrics-api-contract"` (no instalada de forma permanente; `.skills/` no lo escanea `npx skills list`). Validada sobre una tarea real: planificación e implementación base del consumo frontend de `GET /api/metrics/categories/top` (soporte de `operation_type=outcome` e `income`; conversión de la respuesta a `CategoryShare[]`).
+- **Archivos de la implementación base guiada por la skill** (frontend; backend y `frontend/specs/` sin tocar): `frontend/src/lib/financial-types.ts` (+ `TopCategoryItem`, `TopCategoriesQuery`, `CategoryShare`), `frontend/src/lib/category-share.ts` (`computeCategoryShares`), `frontend/src/lib/category-share.test.ts` (4 tests: normal, vacío, una categoría, total 0), `frontend/src/lib/metrics-api.ts` (`fetchTopCategories`). Checks `npm run lint` / `npm run build` / `npm run test` (9/9) verdes; `curl` real contra el backend confirmó el contrato.
+
+### Aprendizaje concreto confirmado (`backend/app/routes.py` como fuente de verdad)
+
+- `GET /api/metrics/categories/top` tiene `operation_type` con **default `"outcome"`** (`backend/app/routes.py:289`) → una vista de **ingresos** debe enviar `operation_type=income` **explícito**; omitirlo devuelve el ranking de gasto (verificado en vivo: `?limit=20` sin `operation_type` → items `"outcome"`).
+- `limit` tiene rango **API `1..20`**, default `5` (`backend/app/routes.py:290`, `Query(default=5, ge=1, le=20)`). Fuera de rango → **`422 HTTPValidationError`** (verificado en vivo: `limit=21` → `422`).
+- **El frontend NO debe ocultar errores de validación del backend con clamping.** Decisión de esta fase: se eliminó un `clampLimit` de cliente; `fetchTopCategories` envía `limit` explícito tal cual y deja que FastAPI devuelva `422` (coherente con `.agents/rules/error-handling.md` R1 y `conventions.md` conv. 31). Solo se conserva un default de `20` cuando `limit` es `undefined`.
+- **`limit=20` devuelve todas las categorías** (hay ≤4 por `operation_type`; income = `sales` + `others`, `backend/app/routes.py:79`) → se usa como denominador real para calcular el porcentaje de cada categoría en el cliente (la respuesta no trae `percent` ni `business_type`, `backend/app/routes.py:200-208`).
+- Los **tipos de implementación viven en `frontend/src/lib/financial-types.ts`** (extendido), **no en `frontend/specs/`**: `frontend/specs/` es spec-only, no está en `frontend/tsconfig.app.json` (`"include": ["src"]`) y no debe importarse desde `frontend/src/` (`frontend/specs/README.md:41-48`).
+- Los **parámetros opcionales se omiten** cuando no están definidos — nunca se envía `null` literal ni la cadena `"null"`: `fetchTopCategories` añade `start_date` / `end_date` / `business_type` solo con `!== undefined` (`frontend/specs/param-types.ts:9-13`).
+- Las **fechas del dataset son dinámicas**: `generate_mock_movements(seed=42)` con `today = date.today()` y `_year_for_month` (`backend/app/routes.py:65-68,97`); `facets.min_date` / `max_date` cambian a diario → **nunca hard-codear años/fechas**; los límites del filtro se leen de `GET /api/metrics/facets`. (Relacionado con el gap "Inconsistencia de fecha en el dashboard" de este mismo archivo.)
+
+---
+
 ## ⚠️ Gaps conocidos (evidenciados por archivo)
 
 | Gap | Evidencia | Impacto |
