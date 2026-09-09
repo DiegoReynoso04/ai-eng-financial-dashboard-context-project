@@ -42,6 +42,52 @@
 
 ---
 
+## ✅ Fase agent-skills — resumen consolidado (2026-09-10)
+
+Ejercicio de mejora del codebase mediante *agent skills*. Rama `feature/agent-skills`; PRs #5–#8 (#5, #6 y #7 mergeados a `main`; #8 abierto).
+
+### Skills aplicadas (4)
+
+| Skill | Origen | Uso en el repo | Entregable |
+|---|---|---|---|
+| `accessibility` | `addyosmani/web-quality-skills` (ecosistema / comunidad) | auditoría + **5 correcciones**, verificadas en runtime (árbol de accesibilidad + contraste medido; sin axe/Lighthouse en el entorno) | commit `197f722` · PR #5 (merged) |
+| `vercel-react-best-practices` | `vercel-labs/agent-skills` (ecosistema / comunidad) | auditoría de rendimiento; **1 corrección** aplicada (regla `js-cache-function-results`); resto auditado y descartado por stack (Vite SPA, sin SSR/RSC) | commit `22d6260` · PR #5 (merged) |
+| `deployment-pipeline-design` | `wshobson/agents` (ecosistema / comunidad) | auditoría CI/CD → **P1/P2/P3** aplicados | commit `e736bfe` · PR #6 (merged) |
+| `metrics-api-contract` | **interna del proyecto** — `.skills/metrics-api-contract/SKILL.md` | creada desde el contrato real de `backend/app/routes.py`; validada sobre `/api/metrics/categories/top` | commit `c2aebbe` · PR #8 (abierto) — detalle en la sección anterior |
+
+Las 3 externas se cargaron con `npx skills use <owner/repo@skill>` (efímero) y luego se **instalaron a nivel de proyecto** en `.agents/skills/<name>/` con `npx skills add … --copy` + `skills-lock.json` (commit `7a36ad4` · PR #7 merged). La interna se carga con `npx skills use "./.skills/metrics-api-contract"` (no la lista `npx skills list`).
+
+### Cambios verificados
+
+- **Accesibilidad** (`197f722`): ticks de eje `var(--muted-foreground)` / `var(--border)` → contraste 3.14:1 → **5.17:1** (WCAG 1.4.3); cada gráfico envuelto en `<figure>` con `aria-labelledby` a un `<h2>` real + tabla `sr-only` equivalente (1.1.1 / 1.3.1); `role="alert"` en el banner de error de `App.tsx` (4.1.3); `<title>` descriptivo en `index.html` (2.4.2). Navegación por teclado de Recharts v3 intacta. Sin tocar `components/ui/card.tsx` ni el backend.
+- **Rendimiento** (`22d6260`): `Intl.NumberFormat` de `formatCurrency` izado a constante de módulo en `frontend/src/lib/financial-utils.ts` — misma salida (verificada por el test existente `formatCurrency(1234.56) === "$1,235"`).
+- **CI/CD base** (`e736bfe`): `.github/workflows/ci.yml` (jobs frontend Node 24 y backend Python 3.13, en paralelo, con caché de npm/pip); `backend/requirements.txt` con versiones **fijadas** a las resueltas (`fastapi==0.141.1`, …); `.dockerignore` en `frontend/` y `backend/`. Sin comprometer proveedor de despliegue.
+- **Base de `/api/metrics/categories/top`** (`c2aebbe`): tipos `TopCategoryItem` / `TopCategoriesQuery` / `CategoryShare` en `frontend/src/lib/financial-types.ts`; `fetchTopCategories` en `frontend/src/lib/metrics-api.ts` (contrato respetado, `operation_type` explícito, `limit` **sin clamping** — el backend valida `1..20` → `422`; `undefined` → `20`); `computeCategoryShares` + 4 tests co-ubicados. **Sin integrar en `App.tsx`** (Feature 3 fuera de alcance). Sin imports desde `frontend/specs/`.
+- **Verificación transversal**: en cada fase, `npm run lint` / `npm run build` (`tsc -b`) / `npm run test` verdes en contenedor (tests frontend: 5 → **9**); `python -m pytest -q` **15/15** sin regresión; `docker compose build` OK; peticiones `curl` reales contra el backend.
+
+### Gaps de este `status.md` cerrados por esta fase
+
+- **"Sin CI/CD"** → RESUELTO: `.github/workflows/ci.yml` corre lint + `tsc -b` + `vitest` + `pytest` en `push`/`pull_request` (PR #6). Pendiente: marcar los checks como *required* en `main` (Branch Protection en GitHub Settings, no en código).
+- **"Dependencias del backend sin versión fijada"** → RESUELTO: `backend/requirements.txt` con `==` (PR #6).
+- **"Estructura de agentes incompleta"** (`.agents/skills` vacía) → RESUELTO: 3 skills externas instaladas en `.agents/skills/` + `skills-lock.json` (PR #7) y skill interna en `.skills/metrics-api-contract/` (PR #8). Cubre las prioridades #1 y #2 de "Siguientes prioridades".
+
+Siguen abiertos: header `"2024 - Full Year"` vs fechas dinámicas; `frontend/src/lib/mock-data.ts` código muerto; cobertura de tests no medida; sin tests de componente React; CORS `["*"]`; Dockerfiles sin `HEALTHCHECK` ni `USER` no-root; `App.tsx` sigue sin loguear el error real de red/API (aunque ya lo **anuncia** con `role="alert"`).
+
+### Skill del ecosistema elegida (y por qué)
+
+`wshobson/agents@deployment-pipeline-design`, seleccionada tras `npx skills find deployment` (20 candidatas revisadas). Motivos:
+
+- **Comunitaria y agnóstica de proveedor**: solo GitHub Actions, sin comprometer AWS / Vercel / Railway / Kubernetes — el proyecto **no tiene destino de despliegue elegido**.
+- **Ataca un gap ya documentado en este archivo**: "Sin CI/CD" y "Siguientes prioridades" #7 ("Añadir un pipeline de CI que corra `pytest` y `vitest run` en cada PR").
+- **Adopción alta** (~12,3K instalaciones), la mayor entre las candidatas aplicables a este stack.
+- **Descartadas**: Expo/React Native, Azure/AWS/Vercel/Railway específicas, Next.js, Kubernetes, Salesforce, HuggingFace/SageMaker, etc. — o no aplican al stack (Vite SPA + FastAPI) o comprometen una plataforma concreta.
+
+### Skill interna creada
+
+`.skills/metrics-api-contract/SKILL.md` (167 líneas) — digest verificado del contrato de la API de métricas de **este** repo: los 9 endpoints `GET` con params/defaults/gotchas, reglas de fechas dinámicas, y la frontera de tipos `frontend/specs/` ↔ `frontend/src/lib/financial-types.ts` ↔ backend, con `backend/app/routes.py` como fuente de verdad. Complementa a las 3 externas (que cubren genéricos de framework/proceso, no contrato de dominio). Detalle, evidencia `archivo:línea` y aprendizajes en la sección **"Skill interna del proyecto — `metrics-api-contract`"** de arriba.
+
+---
+
 ## ⚠️ Gaps conocidos (evidenciados por archivo)
 
 | Gap | Evidencia | Impacto |
